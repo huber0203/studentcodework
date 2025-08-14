@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>酒店管理儀表板</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 222.2 84% 4.9%;
+            --card: 0 0% 100%;
+            --card-foreground: 222.2 84% 4.9%;
+            --popover: 0 0% 100%;
+            --popover-foreground: 222.2 84% 4.9%;
+            --primary: 221.2 83.2% 53.3%;
+            --primary-foreground: 210 40% 98%;
+            --secondary: 210 40% 96.1%;
+            --secondary-foreground: 222.2 47.4% 11.2%;
+            --muted: 210 40% 96.1%;
+            --muted-foreground: 215.4 16.3% 46.9%;
+            --accent: 210 40% 96.1%;
+            --accent-foreground: 222.2 47.4% 11.2%;
+            --destructive: 0 84.2% 60.2%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 214.3 31.8% 91.4%;
+            --input: 214.3 31.8% 91.4%;
+            --ring: 221.2 83.2% 53.3%;
+            --radius: 0.5rem;
+        }
+        
+        .sidebar-open {
+            transform: translateX(0);
+        }
+        
+        .sidebar-closed {
+            transform: translateX(-100%);
+        }
+        
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            z-index: 50;
+            min-width: 8rem;
+        }
+        
+        .dropdown-menu.show {
+            display: block;
+        }
+        
+        .progress-bar {
+            background-color: #e5e7eb;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            background-color: #3b82f6;
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        
+        .badge-success {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        
+        .badge-warning {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        
+        .badge-default {
+            background-color: #f3f4f6;
+            color: #374151;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 50;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 200px;
+            width: 100%;
+        }
+        
+        .pie-chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="flex h-screen">
+        <!-- 手機版側邊欄切換按鈕 -->
+        <button id="mobile-menu-btn" class="fixed bottom-4 right-4 z-50 rounded-full h-12 w-12 shadow-lg bg-white border border-gray-200 md:hidden flex items-center justify-center">
+            <i data-lucide="menu" class="h-6 w-6"></i>
+        </button>
+
+        <!-- 側邊欄 -->
+        <div id="sidebar" class="sidebar-closed md:translate-x-0 fixed md:relative inset-0 md:inset-auto z-40 md:z-auto w-64 bg-white border-r border-gray-200 flex flex-col transition-transform duration-300 ease-in-out">
+            <!-- 手機版關閉按鈕 -->
+            <div class="flex justify-end p-4 md:hidden">
+                <button id="close-sidebar" class="p-2 hover:bg-gray-100 rounded">
+                    <i data-lucide="chevron-left" class="h-6 w-6"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 border-b border-gray-200">
+                <h1 class="text-2xl font-semibold text-purple-600">民宿後台</h1>
+            </div>
+            
+            <div class="flex-1 py-4 overflow-y-auto">
+                <nav class="space-y-1 px-2">
+                    <button onclick="setActiveSection('dashboard')" class="nav-item flex items-center w-full px-4 py-3 text-sm font-medium rounded-r-md text-blue-600 bg-blue-50 border-l-4 border-blue-600" data-section="dashboard">
+                        <i data-lucide="bar-chart" class="mr-3 h-5 w-5"></i>
+                        儀表板
+                    </button>
+                    <button onclick="setActiveSection('check-in-out')" class="nav-item flex items-center w-full px-4 py-3 text-sm font-medium rounded-r-md text-gray-600 hover:bg-gray-50 hover:text-gray-900" data-section="check-in-out">
+                        <i data-lucide="calendar" class="mr-3 h-5 w-5"></i>
+                        入住退房
+                    </button>
+                    <button onclick="setActiveSection('rooms')" class="nav-item flex items-center w-full px-4 py-3 text-sm font-medium rounded-r-md text-gray-600 hover:bg-gray-50 hover:text-gray-900" data-section="rooms">
+                        <i data-lucide="home" class="mr-3 h-5 w-5"></i>
+                        房間管理
+                    </button>
+                    <button onclick="setActiveSection('messages')" class="nav-item flex items-center w-full px-4 py-3 text-sm font-medium rounded-r-md text-gray-600 hover:bg-gray-50 hover:text-gray-900" data-section="messages">
+                        <i data-lucide="message-square" class="mr-3 h-5 w-5"></i>
+                        訊息
+                    </button>
+                    <button onclick="setActiveSection('customer-review')" class="nav-item flex items-center w-full px-4 py-3 text-sm font-medium rounded-r-md text-gray-600 hover:bg-gray-50 hover:text-gray-900" data-section="customer-review">
+                        <i data-lucide="star" class="mr-3 h-5 w-5"></i>
+                        客戶評價
+                    </button>
+                    <button onclick="setActiveSection('billing')" class="nav-item flex items-center w-full px-4 py-3 text-sm font-medium rounded-r-md text-gray-600 hover:bg-gray-50 hover:text-gray-900" data-section="billing">
+                        <i data-lucide="credit-card" class="mr-3 h-5 w-5"></i>
+                        帳單系統
+                    </button>
+                    <button onclick="setActiveSection('food-delivery')" class="nav-item flex items-center w-full px-4 py-3 text-sm font-medium rounded-r-md text-gray-600 hover:bg-gray-50 hover:text-gray-900" data-section="food-delivery">
+                        <i data-lucide="utensils" class="mr-3 h-5 w-5"></i>
+                        餐飲配送
+                    </button>
+                    <button onclick="setActiveSection('premium')" class="nav-item flex items-center w-full px-4 py-3 text-sm font-medium rounded-r-md text-gray-600 hover:bg-gray-50 hover:text-gray-900" data-section="premium">
+                        <i data-lucide="award" class="mr-3 h-5 w-5"></i>
+                        試用高級版
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <!-- 主要內容 -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- 頂部導航 -->
+            <header class="bg-white border-b border-gray-200 flex items-center justify-between px-4 py-4 md:px-6">
+                <div class="flex items-center">
+                    <button id="mobile-sidebar-toggle" class="mr-2 p-2 hover:bg-gray-100 rounded md:hidden">
+                        <i data-lucide="menu" class="h-5 w-5"></i>
+                    </button>
+                    <h1 id="page-title" class="text-xl font-semibold text-gray-800">民宿後台</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <button class="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+                            <span class="hidden md:inline">拉波波號房</span>
+                            <i data-lucide="chevron-down" class="h-4 w-4"></i>
+                        </button>
+                    </div>
+
+                    <button class="relative p-2 hover:bg-gray-100 rounded">
+                        <i data-lucide="bell" class="h-5 w-5"></i>
+                        <span class="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"></span>
+                    </button>
+
+                    <div class="relative">
+                        <button class="relative h-8 w-8 rounded-full hover:bg-gray-100">
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- 主要內容區域 -->
+            <main class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50">
+                <!-- 儀表板內容 -->
+                <div id="dashboard-content">
+                    <div class="flex justify-end mb-4">
+                        <p class="text-sm text-gray-600">週三 // 2023年7月26日</p>
+                    </div>
+
+                    <!-- 統計卡片 -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
+                        <div class="bg-white rounded-lg border border-gray-200 p-4">
+                            <div class="flex items-center">
+                                <div class="bg-blue-50 p-3 rounded-full mr-4">
+                                    <i data-lucide="arrow-right" class="h-6 w-6 text-blue-500"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">入住 <span class="text-xs">(本週)</span></p>
+                                    <div class="flex items-center">
+                                        <h3 class="text-2xl font-bold mr-2">73</h3>
+                                        <span class="text-xs px-1.5 py-0.5 bg-green-100 text-green-600 rounded">+24%</span>
+                                    </div>
+                                    <p class="text-xs text-gray-500">上週: 35</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-lg border border-gray-200 p-4">
+                            <div class="flex items-center">
+                                <div class="bg-amber-50 p-3 rounded-full mr-4">
+                                    <i data-lucide="arrow-left" class="h-6 w-6 text-amber-500"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">退房 <span class="text-xs">(本週)</span></p>
+                                    <div class="flex items-center">
+                                        <h3 class="text-2xl font-bold mr-2">35</h3>
+                                        <span class="text-xs px-1.5 py-0.5 bg-red-100 text-red-600 rounded">-12%</span>
+                                    </div>
+                                    <p class="text-xs text-gray-500">上週: 97</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-lg border border-gray-200 p-4">
+                            <div class="flex items-center">
+                                <div class="bg-cyan-50 p-3 rounded-full mr-4">
+                                    <i data-lucide="calendar" class="h-6 w-6 text-cyan-500"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">預訂 <span class="text-xs">(本週)</span></p>
+                                    <div class="flex items-center">
+                                        <h3 class="text-2xl font-bold mr-2">237</h3>
+                                        <span class="text-xs px-1.5 py-0.5 bg-green-100 text-green-600 rounded">+31%</span>
+                                    </div>
+                                    <p class="text-xs text-gray-500">上週: 187</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-lg border border-gray-200 p-4">
+                            <p class="text-sm text-gray-500 mb-2">今日活動</p>
+                            <div class="flex justify-between mb-2">
+                                <div class="text-center">
+                                    <div class="bg-blue-500 text-white rounded-full w-10 h-10 flex items-center justify-center mx-auto mb-1">
+                                        <span>5</span>
+                                    </div>
+                                    <p class="text-xs">可用<br>房間</p>
+                                </div>
+                                <div class="text-center">
+                                    <div class="bg-blue-500 text-white rounded-full w-10 h-10 flex items-center justify-center mx-auto mb-1">
+                                        <span>10</span>
+                                    </div>
+                                    <p class="text-xs">已鎖定<br>房間</p>
+                                </div>
+                                <div class="text-center">
+                                    <div class="bg-blue-500 text-white rounded-full w-10 h-10 flex items-center justify-center mx-auto mb-1">
+                                        <span>15</span>
+                                    </div>
+                                    <p class="text-xs">客人</p>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <p class="text-xs text-gray-500">總收入</p>
+                                <p class="text-lg font-bold">35k</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 圖表區域 -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6">
+                        <div class="bg-white rounded-lg border border-gray-200">
+                            <div class="flex items-center justify-between p-4 pb-2">
+                                <h3 class="text-base font-medium">收入</h3>
+                                <div class="relative">
+                                    <button class="text-xs px-2 py-1 hover:bg-gray-100 rounded flex items-center">
+                                        本週 <i data-lucide="chevron-down" class="ml-1 h-3 w-3"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-4 pt-0">
+                                <div class="chart-container">
+                                    <canvas id="revenueChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-lg border border-gray-200">
+                            <div class="flex items-center justify-between p-4 pb-2">
+                                <h3 class="text-base font-medium">客人</h3>
+                                <div class="relative">
+                                    <button class="text-xs px-2 py-1 hover:bg-gray-100 rounded flex items-center">
+                                        本週 <i data-lucide="chevron-down" class="ml-1 h-3 w-3"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-4 pt-0">
+                                <div class="chart-container">
+                                    <canvas id="guestsChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-lg border border-gray-200">
+                            <div class="flex items-center justify-between p-4 pb-2">
+                                <h3 class="text-base font-medium">房間</h3>
+                                <div class="relative">
+                                    <button class="text-xs px-2 py-1 hover:bg-gray-100 rounded flex items-center">
+                                        本週 <i data-lucide="chevron-down" class="ml-1 h-3 w-3"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-4 pt-0">
+                                <div class="text-xs mb-2">
+                                    <div class="flex items-center justify-between">
+                                        <p>總共50間房</p>
+                                        <div class="flex items-center gap-4">
+                                            <div class="flex items-center gap-1">
+                                                <span class="h-2 w-2 rounded-full bg-blue-500"></span>
+                                                <span>已入住</span>
+                                            </div>
+                                            <div class="flex items-center gap-1">
+                                                <span class="h-2 w-2 rounded-full bg-green-500"></span>
+                                                <span>已預訂</span>
+                                            </div>
+                                            <div class="flex items-center gap-1">
+                                                <span class="h-2 w-2 rounded-full bg-amber-500"></span>
+                                                <span>可用</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="chart-container">
+                                    <canvas id="roomsChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 預訂表格 -->
+                    <div class="bg-white rounded-lg border border-gray-200 mb-6">
+                        <div class="p-4 pb-0">
+                            <h3 class="text-base font-medium">今日預訂 <span class="text-xs font-normal text-gray-500">(今日8位客人)</span></h3>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex border-b mb-4">
+                                <button class="px-4 py-2 border-b-2 border-blue-500 text-blue-600">住宿</button>
+                                <button class="px-4 py-2 border-b-2 border-transparent text-gray-600 hover:text-gray-900">套餐</button>
+                                <button class="px-4 py-2 border-b-2 border-transparent text-gray-600 hover:text-gray-900">入住</button>
+                                <button class="px-4 py-2 border-b-2 border-transparent text-gray-600 hover:text-gray-900">退房</button>
+                            </div>
+
+                            <div class="flex flex-col md:flex-row justify-between mb-4 gap-4">
+                                <div class="relative">
+                                    <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"></i>
+                                    <input type="text" placeholder="按姓名、電話或預訂ID搜索客人" class="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full md:w-96 text-sm">
+                                </div>
+                                <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center">
+                                    <i data-lucide="plus" class="h-4 w-4 mr-2"></i>
+                                    新增預訂
+                                </button>
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead>
+                                        <tr class="border-b">
+                                            <th class="text-left py-3 px-4 font-medium text-gray-600">
+                                                <div class="flex items-center">
+                                                    姓名 <i data-lucide="chevron-down" class="h-4 w-4 ml-1"></i>
+                                                </div>
+                                            </th>
+                                            <th class="text-left py-3 px-4 font-medium text-gray-600">預訂ID</th>
+                                            <th class="text-left py-3 px-4 font-medium text-gray-600">夜數</th>
+                                            <th class="text-left py-3 px-4 font-medium text-gray-600">房型</th>
+                                            <th class="text-left py-3 px-4 font-medium text-gray-600">客人數</th>
+                                            <th class="text-left py-3 px-4 font-medium text-gray-600">已付</th>
+                                            <th class="text-left py-3 px-4 font-medium text-gray-600">費用</th>
+                                            <th class="text-left py-3 px-4 font-medium text-gray-600">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="booking-table-body">
+                                        <!-- 預訂數據將通過JavaScript填充 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="flex justify-end mt-4">
+                                <button class="text-blue-500 hover:text-blue-600 text-sm">查看其他預訂</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 日曆和評分 -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-lg border border-gray-200">
+                            <div class="p-4 pb-0">
+                                <h3 class="text-base font-medium">日曆</h3>
+                            </div>
+                            <div class="p-4">
+                                <div class="flex items-center justify-between mb-4">
+                                    <button class="p-2 hover:bg-gray-100 rounded">
+                                        <i data-lucide="chevron-left" class="h-4 w-4"></i>
+                                    </button>
+                                    <h3 class="text-sm font-medium">2023年8月</h3>
+                                    <button class="p-2 hover:bg-gray-100 rounded">
+                                        <i data-lucide="chevron-right" class="h-4 w-4"></i>
+                                    </button>
+                                </div>
+                                <div id="calendar-grid" class="grid grid-cols-7 gap-1 text-center text-xs">
+                                    <!-- 日曆將通過JavaScript生成 -->
+                                </div>
+
+                                
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-lg border border-gray-200">
+                            <div class="flex items-center justify-between p-4 pb-0">
+                                <h3 class="text-base font-medium">整體評分</h3>
+                                <div class="relative">
+                                    <button class="text-xs px-2 py-1 hover:bg-gray-100 rounded flex items-center">
+                                        本週 <i data-lucide="chevron-down" class="ml-1 h-3 w-3"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-4">
+                                <div class="flex justify-center mb-6">
+                                    <div class="relative w-48 h-24">
+                                        
+                                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                            <div class="text-center">
+                                                <p class="text-sm font-medium">評分</p>
+                                                <p class="text-2xl font-bold">4.5/5</p>
+                                                <span class="text-xs px-1.5 py-0.5 bg-green-100 text-green-600 rounded">+31%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-3">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm">清潔度</span>
+                                        <div class="flex items-center gap-2">
+                                            <div class="progress-bar h-2 w-32">
+                                                <div class="progress-fill" style="width: 90%"></div>
+                                            </div>
+                                            <span class="text-sm">4.5</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm">設施</span>
+                                        <div class="flex items-center gap-2">
+                                            <div class="progress-bar h-2 w-32">
+                                                <div class="progress-fill" style="width: 90%"></div>
+                                            </div>
+                                            <span class="text-sm">4.5</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm">位置</span>
+                                        <div class="flex items-center gap-2">
+                                            <div class="progress-bar h-2 w-32">
+                                                <div class="progress-fill" style="width: 50%"></div>
+                                            </div>
+                                            <span class="text-sm">2.5</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm">房間舒適度</span>
+                                        <div class="flex items-center gap-2">
+                                            <div class="progress-bar h-2 w-32">
+                                                <div class="progress-fill" style="width: 50%"></div>
+                                            </div>
+                                            <span class="text-sm">2.5</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm">服務</span>
+                                        <div class="flex items-center gap-2">
+                                            <div class="progress-bar h-2 w-32">
+                                                <div class="progress-fill" style="width: 76%"></div>
+                                            </div>
+                                            <span class="text-sm">3.8</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm">性價比</span>
+                                        <div class="flex items-center gap-2">
+                                            <div class="progress-bar h-2 w-32">
+                                                <div class="progress-fill" style="width: 76%"></div>
+                                            </div>
+                                            <span class="text-sm">3.8</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 帳單系統內容 -->
+                <div id="billing-content" class="hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-semibold">帳單系統</h2>
+                        <div class="flex gap-2">
+                            <button class="border border-gray-300 px-3 py-1 rounded text-sm flex items-center gap-1 hover:bg-gray-50">
+                                <i data-lucide="filter" class="h-4 w-4"></i>
+                                篩選
+                            </button>
+                            <button class="border border-gray-300 px-3 py-1 rounded text-sm flex items-center gap-1 hover:bg-gray-50">
+                                <i data-lucide="download" class="h-4 w-4"></i>
+                                匯出
+                            </button>
+                            <button class="bg-blue-500 text-white px-3 py-1 rounded text-sm flex items-center gap-1 hover:bg-blue-600">
+                                <i data-lucide="plus" class="h-4 w-4"></i>
+                                新發票
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div class="bg-white rounded-lg border border-gray-200 p-4">
+                            <div class="flex items-center">
+                                <div class="bg-blue-50 p-3 rounded-full mr-4">
+                                    <i data-lucide="credit-card" class="h-6 w-6 text-blue-500"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">總收入</p>
+                                    <h3 class="text-2xl font-bold">125,000</h3>
+                                    <p class="text-xs text-green-600">比上月+12%</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-lg border border-gray-200 p-4">
+                            <div class="flex items-center">
+                                <div class="bg-green-50 p-3 rounded-full mr-4">
+                                    <i data-lucide="dollar-sign" class="h-6 w-6 text-green-500"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">已付發票</p>
+                                    <h3 class="text-2xl font-bold">98,500</h3>
+                                    <p class="text-xs text-green-600">佔總數78%</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-lg border border-gray-200 p-4">
+                            <div class="flex items-center">
+                                <div class="bg-amber-50 p-3 rounded-full mr-4">
+                                    <i data-lucide="clock" class="h-6 w-6 text-amber-500"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">待付款</p>
+                                    <h3 class="text-2xl font-bold">26,500</h3>
+                                    <p class="text-xs text-amber-600">佔總數22%</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg border border-gray-200">
+                        <div class="p-4 pb-0">
+                            <h3 class="text-base font-medium">最近發票</h3>
+                        </div>
+                        <div class="p-4">
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead>
+                                        <tr class="border-b">
+                                            <th class="text-left py-3 px-4 font-medium text-gray-600">發票ID</th>
+                                            <th class="text-left py-3 px-4 font-medium text-gray-600">客人</th>
+                                            <th class="text-left py-3 px-4 font-medium text-gray-600">日期</th>
+                                            <th class="text-left py-3 px-4 font-medium text-gray-600">金額</th>
+                                            <th class="text-left py-3 px-4 font-medium text-gray-600">狀態</th>
+                                            <th class="text-right py-3 px-4 font-medium text-gray-600">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="invoice-table-body">
+                                        <!-- 發票數據將通過JavaScript填充 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 餐飲配送內容 -->
+                <div id="food-delivery-content" class="hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-semibold">餐飲配送系統</h2>
+                        <div class="flex gap-2">
+                            <button class="border border-gray-300 px-3 py-1 rounded text-sm flex items-center gap-1 hover:bg-gray-50">
+                                <i data-lucide="filter" class="h-4 w-4"></i>
+                                篩選
+                            </button>
+                            <button class="bg-blue-500 text-white px-3 py-1 rounded text-sm flex items-center gap-1 hover:bg-blue-600">
+                                <i data-lucide="plus" class="h-4 w-4"></i>
+                                新訂單
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div class="bg-white rounded-lg border border-gray-200 p-4">
+                            <div class="flex items-center">
+                                <div class="bg-blue-50 p-3 rounded-full mr-4">
+                                    <i data-lucide="utensils" class="h-6 w-6 text-blue-500"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">總訂單</p>
+                                    <h3 class="text-2xl font-bold">42</h3>
+                                    <p class="text-xs text-green-600">比昨日+8%</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-lg border border-gray-200 p-4">
+                            <div class="flex items-center">
+                                <div class="bg-green-50 p-3 rounded-full mr-4">
+                                    <i data-lucide="shopping-bag" class="h-6 w-6 text-green-500"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">已完成</p>
+                                    <h3 class="text-2xl font-bold">35</h3>
+                                    <p class="text-xs text-green-600">佔總數83%</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-lg border border-gray-200 p-4">
+                            <div class="flex items-center">
+                                <div class="bg-amber-50 p-3 rounded-full mr-4">
+                                    <i data-lucide="truck" class="h-6 w-6 text-amber-500"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">進行中</p>
+                                    <h3 class="text-2xl font-bold">7</h3>
+                                    <p class="text-xs text-amber-600">佔總數17%</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="md:col-span-2">
+                            <div class="bg-white rounded-lg border border-gray-200">
+                                <div class="p-4 pb-0">
+                                    <h3 class="text-base font-medium">活躍訂單</h3>
+                                </div>
+                                <div class="p-4">
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full">
+                                            <thead>
+                                                <tr class="border-b">
+                                                    <th class="text-left py-3 px-4 font-medium text-gray-600">訂單ID</th>
+                                                    <th class="text-left py-3 px-4 font-medium text-gray-600">客人</th>
+                                                    <th class="text-left py-3 px-4 font-medium text-gray-600">房間</th>
+                                                    <th class="text-left py-3 px-4 font-medium text-gray-600">項目</th>
+                                                    <th class="text-left py-3 px-4 font-medium text-gray-600">總計</th>
+                                                    <th class="text-left py-3 px-4 font-medium text-gray-600">狀態</th>
+                                                    <th class="text-left py-3 px-4 font-medium text-gray-600">操作</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="food-orders-table-body">
+                                                <!-- 訂單數據將通過JavaScript填充 -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="bg-white rounded-lg border border-gray-200">
+                                <div class="p-4 pb-0">
+                                    <h3 class="text-base font-medium">訂單分佈</h3>
+                                </div>
+                                <div class="p-4">
+                                    <div class="pie-chart-container">
+                                        <canvas id="foodOrdersChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 其他頁面的佔位符內容 -->
+                <div id="other-content" class="hidden">
+                    <div class="flex items-center justify-center h-full">
+                        <div class="bg-white rounded-lg border border-gray-200 w-full max-w-md p-6 text-center">
+                            <h3 class="text-lg font-semibold mb-2">即將推出</h3>
+                            <p class="text-gray-600 mb-4">此功能正在開發中，敬請期待。</p>
+                            <button onclick="setActiveSection('dashboard')" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                                返回儀表板
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // 全局變數
+        let currentSection = 'dashboard';
+        let isMobile = window.innerWidth < 768;
+        let charts = {};
+
+        // 示例數據
+        const bookingData = [
+            {
+                id: 1,
+                name: "Ram Kailash",
+                phone: "9905598912",
+                bookingId: "SDK89635",
+                nights: 2,
+                roomType: "1 King Room",
+                guests: 2,
+                paid: "150",
+                cost: "1500",
+            },
+            {
+                id: 2,
+                name: "Samira Karki",
+                phone: "9815394203",
+                bookingId: "SDK89635",
+                nights: 4,
+                roomType: ["1 Queen", "1 King Room"],
+                guests: 5,
+                paid: "paid",
+                cost: "5500",
+            },
+            {
+                id: 3,
+                name: "Jeevan Rai",
+                phone: "9865328452",
+                bookingId: "SDK89635",
+                nights: 1,
+                roomType: ["1 Deluxe", "1 King Room"],
+                guests: 3,
+                paid: "150",
+                cost: "2500",
+            },
+            {
+                id: 4,
+                name: "Bindu Sharma",
+                phone: "9845653124",
+                bookingId: "SDK89635",
+                nights: 3,
+                roomType: ["1 Deluxe", "1 King Room"],
+                guests: 2,
+                paid: "150",
+                cost: "3000",
+            }
+        ];
+
+        const invoices = [
+            {
+                id: "INV-2023-001",
+                guest: "Ram Kailash",
+                date: "2023年7月26日",
+                amount: "1500",
+                status: "已付"
+            },
+            {
+                id: "INV-2023-002",
+                guest: "Samira Karki",
+                date: "2023年7月25日",
+                amount: "5500",
+                status: "已付"
+            },
+            {
+                id: "INV-2023-003",
+                guest: "Jeevan Rai",
+                date: "2023年7月24日",
+                amount: "2500",
+                status: "待付"
+            }
+        ];
+
+        const foodOrders = [
+            {
+                id: "FO-1234",
+                guest: "Ram Kailash",
+                room: "101",
+                items: ["咖哩雞", "印度烤餅", "米飯"],
+                total: "rsp.850",
+                status: "已送達",
+                time: "12:30 PM"
+            },
+            {
+                id: "FO-1235",
+                guest: "Samira Karki",
+                room: "205",
+                items: ["蔬菜義大利麵", "蒜蓉麵包", "提拉米蘇"],
+                total: "rsp.1200",
+                status: "準備中",
+                time: "1:15 PM"
+            },
+            {
+                id: "FO-1236",
+                guest: "Jeevan Rai",
+                room: "310",
+                items: ["俱樂部三明治", "薯條", "可樂"],
+                total: "rsp.650",
+                status: "配送中",
+                time: "1:45 PM"
+            }
+        ];
+
+        const calendarEvents = [
+            { date: 2, guest: "Carl Larson II", nights: 2, guests: 2 },
+            { date: 9, guest: "Mrs. Emmett Morar", nights: 2, guests: 2 },
+            { date: 24, guest: "Marjorie Klocko", nights: 2, guests: 2 }
+        ];
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            lucide.createIcons();
+            initializeEventListeners();
+            initializeCharts();
+            populateBookingTable();
+            populateInvoiceTable();
+            populateFoodOrdersTable();
+            generateCalendar();
+            populateCalendarEvents();
+            
+            // 檢查螢幕大小
+            window.addEventListener('resize', function() {
+                isMobile = window.innerWidth < 768;
+            });
+        });
+
+        // 事件監聽器
+        function initializeEventListeners() {
+            // 手機版側邊欄切換
+            document.getElementById('mobile-menu-btn').addEventListener('click', function() {
+                toggleSidebar();
+            });
+
+            document.getElementById('mobile-sidebar-toggle').addEventListener('click', function() {
+                toggleSidebar();
+            });
+
+            document.getElementById('close-sidebar').addEventListener('click', function() {
+                closeSidebar();
+            });
+
+            // 點擊側邊欄外部關閉
+            document.addEventListener('click', function(e) {
+                const sidebar = document.getElementById('sidebar');
+                const mobileBtn = document.getElementById('mobile-menu-btn');
+                const toggleBtn = document.getElementById('mobile-sidebar-toggle');
+                
+                if (isMobile && !sidebar.contains(e.target) && !mobileBtn.contains(e.target) && !toggleBtn.contains(e.target)) {
+                    closeSidebar();
+                }
+            });
+        }
+
+        // 側邊欄控制
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('sidebar-open');
+            sidebar.classList.toggle('sidebar-closed');
+        }
+
+        function closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.add('sidebar-closed');
+            sidebar.classList.remove('sidebar-open');
+        }
+
+        // 設置活躍頁面
+        function setActiveSection(section) {
+            currentSection = section;
+            
+            // 更新導航樣式
+            document.querySelectorAll('.nav-item').forEach(item => {
+                if (item.dataset.section === section) {
+                    item.className = 'nav-item flex items-center w-full px-4 py-3 text-sm font-medium rounded-r-md text-blue-600 bg-blue-50 border-l-4 border-blue-600';
+                } else {
+                    item.className = 'nav-item flex items-center w-full px-4 py-3 text-sm font-medium rounded-r-md text-gray-600 hover:bg-gray-50 hover:text-gray-900';
+                }
+            });
+
+            // 更新頁面標題
+            const titles = {
+                'dashboard': '儀表板',
+                'check-in-out': '入住退房',
+                'rooms': '房間管理',
+                'messages': '訊息',
+                'customer-review': '客戶評價',
+                'billing': '帳單系統',
+                'food-delivery': '餐飲配送',
+                'premium': '高級版'
+            };
+            document.getElementById('page-title').textContent = titles[section] || '儀表板';
+
+            // 顯示對應內容
+            document.getElementById('dashboard-content').classList.toggle('hidden', section !== 'dashboard');
+            document.getElementById('billing-content').classList.toggle('hidden', section !== 'billing');
+            document.getElementById('food-delivery-content').classList.toggle('hidden', section !== 'food-delivery');
+            document.getElementById('other-content').classList.toggle('hidden', 
+                !['check-in-out', 'rooms', 'messages', 'customer-review', 'premium'].includes(section));
+
+            // 關閉手機版側邊欄
+            if (isMobile) {
+                closeSidebar();
+            }
+        }
+
+        // 初始化圖表
+        function initializeCharts() {
+            // 收入圖表
+            const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+            charts.revenue = new Chart(revenueCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['日', '一', '二', '三', '四', '五', '六'],
+                    datasets: [{
+                        data: [8, 10, 12, 11, 9, 11, 12],
+                        backgroundColor: '#F59E0B',
+                        borderRadius: 4,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            display: false,
+                            beginAtZero: true
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 客人圖表
+            const guestsCtx = document.getElementById('guestsChart').getContext('2d');
+            charts.guests = new Chart(guestsCtx, {
+                type: 'line',
+                data: {
+                    labels: ['日', '一', '二', '三', '四', '五'],
+                    datasets: [{
+                        data: [8000, 10000, 12000, 9000, 6000, 8000],
+                        borderColor: '#3B82F6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: 'white',
+                        pointBorderColor: '#3B82F6',
+                        pointBorderWidth: 2,
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            display: false,
+                            beginAtZero: true
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 房間圖表
+            const roomsCtx = document.getElementById('roomsChart').getContext('2d');
+            charts.rooms = new Chart(roomsCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['日', '一', '二', '三', '四', '五', '六'],
+                    datasets: [
+                        {
+                            label: '已入住',
+                            data: [15, 20, 18, 22, 20, 18, 15],
+                            backgroundColor: '#3B82F6',
+                            borderRadius: 4,
+                            borderSkipped: false,
+                        },
+                        {
+                            label: '已預訂',
+                            data: [10, 12, 15, 10, 15, 12, 10],
+                            backgroundColor: '#10B981',
+                            borderRadius: 4,
+                            borderSkipped: false,
+                        },
+                        {
+                            label: '可用',
+                            data: [25, 18, 17, 18, 15, 20, 25],
+                            backgroundColor: '#F59E0B',
+                            borderRadius: 4,
+                            borderSkipped: false,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            display: false,
+                            beginAtZero: true,
+                            stacked: true
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            stacked: true
+                        }
+                    }
+                }
+            });
+
+            // 餐飲訂單圓餅圖
+            const foodOrdersCtx = document.getElementById('foodOrdersChart').getContext('2d');
+            charts.foodOrders = new Chart(foodOrdersCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['早餐', '午餐', '晚餐', '客房服務'],
+                    datasets: [{
+                        data: [35, 45, 55, 25],
+                        backgroundColor: ['#0088FE', '#00C49F', '#FFBB28', '#FF8042']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 填充預訂表格
+        function populateBookingTable() {
+            const tbody = document.getElementById('booking-table-body');
+            tbody.innerHTML = '';
+
+            bookingData.forEach(booking => {
+                const row = document.createElement('tr');
+                row.className = 'border-b hover:bg-gray-50';
+                
+                const roomTypeDisplay = Array.isArray(booking.roomType) 
+                    ? booking.roomType.map(type => `<p>${type}</p>`).join('')
+                    : booking.roomType;
+
+                const paidDisplay = booking.paid === 'paid' 
+                    ? '<span class="px-2 py-1 bg-green-100 text-green-600 rounded text-xs">已付</span>'
+                    : booking.paid;
+
+                row.innerHTML = `
+                    <td class="py-3 px-4">
+                        <div class="flex items-center">
+                            <div>
+                                <p class="font-medium">${booking.name}</p>
+                                <p class="text-xs text-gray-500">${booking.phone}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-3 px-4">${booking.bookingId}</td>
+                    <td class="py-3 px-4">${booking.nights}</td>
+                    <td class="py-3 px-4">${roomTypeDisplay}</td>
+                    <td class="py-3 px-4">${booking.guests} 位客人</td>
+                    <td class="py-3 px-4">${paidDisplay}</td>
+                    <td class="py-3 px-4">${booking.cost}</td>
+                    <td class="py-3 px-4">
+                        <div class="flex space-x-2">
+                            <button class="p-1 hover:bg-gray-100 rounded">
+                                <i data-lucide="edit" class="h-4 w-4"></i>
+                            </button>
+                            <button class="p-1 hover:bg-gray-100 rounded">
+                                <i data-lucide="trash" class="h-4 w-4"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            lucide.createIcons();
+        }
+
+        // 填充發票表格
+        function populateInvoiceTable() {
+            const tbody = document.getElementById('invoice-table-body');
+            tbody.innerHTML = '';
+
+            invoices.forEach(invoice => {
+                const row = document.createElement('tr');
+                row.className = 'border-b hover:bg-gray-50';
+                
+                const statusClass = invoice.status === '已付' ? 'badge-success' : 'badge-warning';
+                
+                row.innerHTML = `
+                    <td class="py-3 px-4 font-medium">${invoice.id}</td>
+                    <td class="py-3 px-4">${invoice.guest}</td>
+                    <td class="py-3 px-4">${invoice.date}</td>
+                    <td class="py-3 px-4">${invoice.amount}</td>
+                    <td class="py-3 px-4">
+                        <span class="px-2 py-1 rounded text-xs ${statusClass}">${invoice.status}</span>
+                    </td>
+                    <td class="py-3 px-4 text-right">
+                        <div class="relative">
+                            <button class="p-1 hover:bg-gray-100 rounded">
+                                <i data-lucide="more-horizontal" class="h-4 w-4"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            lucide.createIcons();
+        }
+
+        // 填充餐飲訂單表格
+        function populateFoodOrdersTable() {
+            const tbody = document.getElementById('food-orders-table-body');
+            tbody.innerHTML = '';
+
+            foodOrders.forEach(order => {
+                const row = document.createElement('tr');
+                row.className = 'border-b hover:bg-gray-50';
+                
+                let statusClass = 'badge-default';
+                if (order.status === '已送達') statusClass = 'badge-success';
+                else if (order.status === '準備中') statusClass = 'badge-warning';
+                
+                const itemsDisplay = order.items.map(item => `<span class="text-xs block">${item}</span>`).join('');
+                
+                row.innerHTML = `
+                    <td class="py-3 px-4 font-medium">${order.id}</td>
+                    <td class="py-3 px-4">${order.guest}</td>
+                    <td class="py-3 px-4">${order.room}</td>
+                    <td class="py-3 px-4">
+                        <div class="flex flex-col">
+                            ${itemsDisplay}
+                        </div>
+                    </td>
+                    <td class="py-3 px-4">${order.total}</td>
+                    <td class="py-3 px-4">
+                        <span class="px-2 py-1 rounded text-xs ${statusClass}">${order.status}</span>
+                    </td>
+                    <td class="py-3 px-4">
+                        <div class="relative">
+                            <button class="p-1 hover:bg-gray-100 rounded">
+                                <i data-lucide="more-horizontal" class="h-4 w-4"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            lucide.createIcons();
+        }
+
+        // 生成日曆
+        function generateCalendar() {
+            const calendarGrid = document.getElementById('calendar-grid');
+            const daysOfWeek = ['日', '一', '二', '三', '四', '五', '六'];
+            
+            // 添加星期標題
+            daysOfWeek.forEach(day => {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'py-1 font-medium';
+                dayElement.textContent = day;
+                calendarGrid.appendChild(dayElement);
+            });
+
+            // 添加日期
+            const daysInMonth = [
+                { day: 31, isCurrentMonth: false },
+                { day: 1, isCurrentMonth: true },
+                { day: 2, isCurrentMonth: true, hasEvent: true },
+                { day: 3, isCurrentMonth: true },
+                { day: 4, isCurrentMonth: true },
+                { day: 5, isCurrentMonth: true },
+                { day: 6, isCurrentMonth: true },
+                { day: 7, isCurrentMonth: true },
+                { day: 8, isCurrentMonth: true },
+                { day: 9, isCurrentMonth: true, hasEvent: true },
+                { day: 10, isCurrentMonth: true },
+                { day: 11, isCurrentMonth: true },
+                { day: 12, isCurrentMonth: true },
+                { day: 13, isCurrentMonth: true },
+                { day: 14, isCurrentMonth: true },
+                { day: 15, isCurrentMonth: true },
+                { day: 16, isCurrentMonth: true },
+                { day: 17, isCurrentMonth: true },
+                { day: 18, isCurrentMonth: true },
+                { day: 19, isCurrentMonth: true },
+                { day: 20, isCurrentMonth: true },
+                { day: 21, isCurrentMonth: true },
+                { day: 22, isCurrentMonth: true },
+                { day: 23, isCurrentMonth: true },
+                { day: 24, isCurrentMonth: true, hasEvent: true },
+                { day: 25, isCurrentMonth: true },
+                { day: 26, isCurrentMonth: true },
+                { day: 27, isCurrentMonth: true },
+                { day: 28, isCurrentMonth: true },
+                { day: 29, isCurrentMonth: true },
+                { day: 30, isCurrentMonth: true },
+                { day: 31, isCurrentMonth: true },
+                { day: 1, isCurrentMonth: false },
+                { day: 2, isCurrentMonth: false },
+                { day: 3, isCurrentMonth: false }
+            ];
+
+            daysInMonth.forEach(dateInfo => {
+                const dayElement = document.createElement('div');
+                dayElement.className = `py-1 relative ${!dateInfo.isCurrentMonth ? 'text-gray-400' : ''}`;
+                dayElement.textContent = dateInfo.day;
+                
+                if (dateInfo.hasEvent) {
+                    const dot = document.createElement('span');
+                    dot.className = 'absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-500 rounded-full';
+                    dayElement.appendChild(dot);
+                }
+                
+                calendarGrid.appendChild(dayElement);
+            });
+        }
+
+        // 填充日曆事件
+        function populateCalendarEvents() {
+            const eventsContainer = document.getElementById('calendar-events');
+            eventsContainer.innerHTML = '';
+
+            calendarEvents.forEach(event => {
+                const eventElement = document.createElement('div');
+                eventElement.className = 'flex items-center';
+                eventElement.innerHTML = `
+                    <img src="/placeholder.svg?height=32&width=32" alt="${event.guest}" class="h-8 w-8 rounded-full mr-3">
+                    <div>
+                        <p class="text-sm font-medium">${event.guest}</p>
+                        <p class="text-xs text-gray-500">${event.nights} 晚 | ${event.guests} 位客人</p>
+                    </div>
+                `;
+                eventsContainer.appendChild(eventElement);
+            });
+        }
+    </script>
+</body>
+</html>
