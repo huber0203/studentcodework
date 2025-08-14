@@ -69,13 +69,13 @@
             box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.2);
         }
         
-        .cell.cyan { background: linear-gradient(45deg, #00ffff, #0088cc); }
-        .cell.blue { background: linear-gradient(45deg, #0066ff, #003399); }
-        .cell.orange { background: linear-gradient(45deg, #ff6600, #cc3300); }
-        .cell.yellow { background: linear-gradient(45deg, #ffff00, #cccc00); }
-        .cell.green { background: linear-gradient(45deg, #00ff00, #009900); }
-        .cell.purple { background: linear-gradient(45deg, #9900ff, #6600cc); }
-        .cell.red { background: linear-gradient(45deg, #ff0000, #cc0000); }
+        .cell.cyan, .next-cell.cyan { background: linear-gradient(45deg, #00ffff, #0088cc); }
+        .cell.blue, .next-cell.blue { background: linear-gradient(45deg, #0066ff, #003399); }
+        .cell.orange, .next-cell.orange { background: linear-gradient(45deg, #ff6600, #cc3300); }
+        .cell.yellow, .next-cell.yellow { background: linear-gradient(45deg, #ffff00, #cccc00); }
+        .cell.green, .next-cell.green { background: linear-gradient(45deg, #00ff00, #009900); }
+        .cell.purple, .next-cell.purple { background: linear-gradient(45deg, #9900ff, #6600cc); }
+        .cell.red, .next-cell.red { background: linear-gradient(45deg, #ff0000, #cc0000); }
         
         .cell.clearing {
             animation: clearLine 0.5s ease-in-out;
@@ -179,6 +179,7 @@
             font-size: 2rem;
             margin-bottom: 20px;
             animation: pulse 1s infinite;
+            line-height: 1.2; /* 修正：增加行高避免文字重疊 */
         }
         
         @keyframes pulse {
@@ -272,10 +273,10 @@
             100% { transform: scale(4); opacity: 0; }
         }
 
-        /* --- 全新的手機版面配置 --- */
+        /* --- 手機版面配置 --- */
         @media (max-width: 768px) {
             body {
-                padding: 10px;
+                padding: 10px 0; /* 修正：移除左右 padding，實現 100% 寬度 */
                 overflow-y: auto;
             }
             .title {
@@ -283,53 +284,46 @@
                 margin-bottom: 15px;
             }
 
-            /* 1. 主容器改為垂直排列 */
             .game-container {
                 flex-direction: column;
                 align-items: center;
                 padding: 15px;
                 gap: 20px;
                 width: 100%;
+                border-radius: 0; /* 滿版時移除圓角 */
+                border-left: none;
+                border-right: none;
             }
 
-            /* 2. 解散 info 容器，讓其子項目能被重新排序 */
             .game-info {
                 display: contents;
             }
 
-            /* 3. 使用 order 屬性設定新的排列順序 */
             .game-board { order: 1; }
             .next-piece { order: 2; }
             .mobile-controls { order: 3; }
             .info-panel { order: 4; }
             .controls { order: 5; }
 
-            /* 4. 隱藏桌面版說明 */
             .instructions {
                 display: none;
             }
-
-            /* --- 重新設定各元件在手機上的樣式 --- */
             
-            /* 主畫面 */
             .board-grid {
-                grid-template-columns: repeat(10, min(28px, 7vw));
-                grid-template-rows: repeat(20, min(28px, 7vw));
+                grid-template-columns: repeat(10, min(30px, 8vw));
+                grid-template-rows: repeat(20, min(30px, 8vw));
                 padding: 4px;
             }
             .cell {
-                width: min(28px, 7vw);
-                height: min(28px, 7vw);
+                width: min(30px, 8vw);
+                height: min(30px, 8vw);
             }
 
-            /* 下一個方塊 */
-            .next-piece {
-                width: 100%;
-                max-width: 300px;
-                padding: 15px;
+            .next-piece, .info-panel, .controls {
+                width: 95%;
+                max-width: 400px;
             }
             
-            /* 手機控制器 (橫向排列按鈕) */
             .mobile-controls {
                 display: flex;
                 flex-direction: row;
@@ -338,47 +332,28 @@
                 align-items: center;
                 gap: 15px;
                 width: 100%;
-                max-width: 320px;
+                max-width: 400px;
                 padding: 10px 0;
             }
             .control-btn {
-                width: 55px;
-                height: 55px;
-                font-size: 1.2rem;
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
             }
             .control-btn.wide {
-                flex-basis: 100%; /* 讓寬按鈕佔滿整行，實現換行效果 */
+                flex-basis: 100%;
                 margin-top: 5px;
-                height: 45px;
+                height: 50px;
                 font-size: 1rem;
             }
 
-            /* 分數面板 */
-            .info-panel {
-                width: 100%;
-                max-width: 300px;
-                display: flex;
-                justify-content: space-around;
-                align-items: center;
-                padding: 15px;
-                border-radius: 10px;
-            }
             .score, .level {
                 font-size: 1.1rem;
                 margin-bottom: 0;
             }
 
-            /* 其他按鈕 (重新開始等) */
-            .controls {
-                width: 100%;
-                max-width: 300px;
-                display: flex;
-                flex-direction: row;
-                gap: 10px;
-                margin-top: 0;
-            }
             .btn {
-                flex: 1; /* 按鈕自動填滿空間 */
+                flex: 1;
                 min-width: 100px;
             }
         }
@@ -391,8 +366,7 @@
         <div class="game-board">
             <div class="board-grid" id="gameBoard"></div>
             <div class="game-over" id="gameOver" style="display: none;">
-                <h2>遊戲結束!</h2>
-                <button class="btn" onclick="resetGame()">重新開始</button>
+                <h2>遊戲<br>結束</h2>
             </div>
         </div>
         
@@ -503,7 +477,6 @@
             document.getElementById('score').textContent = score;
             document.getElementById('level').textContent = level;
             
-            // 更新遊戲板
             for (let y = 0; y < BOARD_HEIGHT; y++) {
                 for (let x = 0; x < BOARD_WIDTH; x++) {
                     const cell = document.getElementById(`cell-${x}-${y}`);
@@ -515,12 +488,10 @@
                 }
             }
             
-            // 顯示當前方塊
             if (currentPiece) {
                 drawPiece(currentPiece);
             }
             
-            // 顯示下一個方塊
             drawNextPiece();
         }
 
@@ -545,7 +516,6 @@
             const nextGrid = document.getElementById('nextPiece');
             nextGrid.innerHTML = '';
             
-            // 創建 4x4 的空白預覽格
             for (let i = 0; i < 16; i++) {
                 const cell = document.createElement('div');
                 cell.className = 'next-cell';
@@ -553,7 +523,6 @@
             }
             
             if (nextPiece) {
-                // 這個邏輯是為了讓不同形狀的方塊能在預覽區置中顯示
                 const shape = nextPiece.shape;
                 const shapeWidth = shape[0].length;
                 const shapeHeight = shape.length;
@@ -569,7 +538,6 @@
                             if (index >= 0 && index < 16) {
                                 const cell = nextGrid.children[index];
                                 if (cell) {
-                                    // 修正：同時加上 'next-cell' 和 'cell' class，使其能套用顏色
                                     cell.className = 'next-cell cell filled ' + nextPiece.color;
                                 }
                             }
@@ -631,22 +599,18 @@
                 currentPiece.shape.map(row => row[i]).reverse()
             );
             
-            // Wall Kick 邏輯
             let kickX = 0;
             if (!isValidMove(currentPiece.x, currentPiece.y, rotated)) {
-                // 嘗試向右踢
                 if (isValidMove(currentPiece.x + 1, currentPiece.y, rotated)) {
                     kickX = 1;
-                // 嘗試向左踢
                 } else if (isValidMove(currentPiece.x - 1, currentPiece.y, rotated)) {
                     kickX = -1;
-                // 針對 I 型方塊的特殊踢牆
                 } else if (currentPiece.type === 'I' && isValidMove(currentPiece.x + 2, currentPiece.y, rotated)) {
                     kickX = 2;
                 } else if (currentPiece.type === 'I' && isValidMove(currentPiece.x - 2, currentPiece.y, rotated)) {
                     kickX = -2;
                 } else {
-                    return; // 無法旋轉
+                    return;
                 }
             }
 
@@ -706,7 +670,7 @@
                     }
                     
                     updateDisplay();
-                }, 450); // 稍短於動畫時間
+                }, 450);
             }
         }
 
@@ -723,7 +687,7 @@
                 gameOver = true;
                 document.getElementById('gameOver').style.display = 'block';
                 clearInterval(dropInterval);
-                if(isMusicPlaying) toggleMusic(); // 遊戲結束時停止音樂
+                if(isMusicPlaying) music.pause();
             }
             
             updateDisplay();
@@ -761,7 +725,6 @@
             } else {
                 music.play().catch(e => {
                     console.log('音樂播放需要使用者互動:', e);
-                    // 可以在此處顯示一個提示，讓使用者點擊以播放音樂
                 });
                 isMusicPlaying = true;
             }
@@ -807,9 +770,8 @@
                 const rect = e.target.getBoundingClientRect();
                 createTouchFeedback(rect.left + rect.width / 2, rect.top + rect.height / 2);
                 
-                // 長按加速
                 if (action === moveLeft || action === moveRight || action === moveDown) {
-                    clearInterval(pressInterval); // 清除之前的
+                    clearInterval(pressInterval);
                     pressInterval = setInterval(action, 150);
                 }
             };
@@ -834,7 +796,6 @@
 
         function setupTouchGestures() {
             let touchStartX = 0;
-            let touchStartY = 0;
             let touchMoved = false;
             const gameBoard = document.getElementById('gameBoard');
             
@@ -842,7 +803,6 @@
                 e.preventDefault();
                 const touch = e.touches[0];
                 touchStartX = touch.clientX;
-                touchStartY = touch.clientY;
                 touchMoved = false;
             }, { passive: false });
             
@@ -853,12 +813,11 @@
                 const touch = e.touches[0];
                 const deltaX = touch.clientX - touchStartX;
                 
-                // 橫向滑動
-                const sensitivity = gameBoard.clientWidth / BOARD_WIDTH; // 一格的寬度
+                const sensitivity = gameBoard.clientWidth / BOARD_WIDTH;
                 if (Math.abs(deltaX) > sensitivity) {
                     if (deltaX > 0) { moveRight(); } 
                     else { moveLeft(); }
-                    touchStartX = touch.clientX; // 重設起點
+                    touchStartX = touch.clientX;
                 }
             }, { passive: false });
 
@@ -866,7 +825,6 @@
                 e.preventDefault();
                 if (gameOver || isPaused) return;
                 
-                // 如果沒有滑動，視為點擊旋轉
                 if (!touchMoved) {
                     const touch = e.changedTouches[0];
                     createTouchFeedback(touch.clientX, touch.clientY);
@@ -880,13 +838,6 @@
             initGame();
             setupMobileControls();
             setupTouchGestures();
-
-            // 首次互動後才能播放音樂
-            document.body.addEventListener('click', () => {
-                if (!isMusicPlaying && document.getElementById('bgMusic').paused) {
-                    // 可以在這裡提示使用者音樂已準備好
-                }
-            }, { once: true });
         };
     </script>
 </body>
