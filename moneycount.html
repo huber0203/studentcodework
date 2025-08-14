@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能記帳 - 專業理財助手</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 414px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+            position: relative;
+            padding-bottom: 80px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .balance-card {
+            background: white;
+            margin: -20px 20px 20px;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(30, 64, 175, 0.1);
+            border: 1px solid #e2e8f0;
+        }
+
+        .balance-amount {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1e40af;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .balance-stats {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .stat-item {
+            flex: 1;
+            text-align: center;
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 12px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .stat-value.income {
+            color: #059669;
+        }
+
+        .stat-value.expense {
+            color: #334155;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .chart-section {
+            margin: 20px;
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e40af;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 200px;
+            margin-bottom: 20px;
+        }
+
+        .transactions-section {
+            margin: 20px;
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+        }
+
+        .add-transaction-btn {
+            width: 100%;
+            background: #1e40af;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .add-transaction-btn:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+
+        .transaction-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s;
+        }
+
+        .transaction-item:hover {
+            background: #f1f5f9;
+            transform: translateX(4px);
+        }
+
+        .transaction-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .transaction-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: white;
+        }
+
+        .transaction-details h4 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 2px;
+        }
+
+        .transaction-details p {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .transaction-amount {
+            font-size: 16px;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .transaction-actions {
+            display: flex;
+            gap: 8px;
+            margin-left: 12px;
+        }
+
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .edit-btn {
+            background: #059669;
+            color: white;
+        }
+
+        .edit-btn:hover {
+            background: #047857;
+        }
+
+        .delete-btn {
+            background: #334155;
+            color: white;
+        }
+
+        .delete-btn:hover {
+            background: #1e293b;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 414px;
+            background: white;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 0;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 12px;
+        }
+
+        .nav-item.active {
+            background: #eff6ff;
+            color: #1e40af;
+        }
+
+        .nav-item i {
+            font-size: 20px;
+        }
+
+        .nav-item span {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin: 20px;
+            width: calc(100% - 40px);
+            max-width: 360px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1e40af;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 8px;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            background: white;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #1e40af;
+            box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #1e40af;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-secondary {
+            background: #f8fafc;
+            color: #334155;
+            border: 1px solid #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: #f1f5f9;
+        }
+
+        @media (max-width: 320px) {
+            .balance-stats {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .transaction-info {
+                gap: 8px;
+            }
+            
+            .transaction-details h4 {
+                font-size: 14px;
+            }
+            
+            .transaction-amount {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-wallet"></i> 智能記帳</h1>
+            <p>專業理財助手 - 讓每一筆支出都有意義</p>
+        </div>
+
+        <div class="balance-card">
+            <div class="balance-amount" id="totalBalance">NT$ 25,680</div>
+            <div class="balance-stats">
+                <div class="stat-item">
+                    <div class="stat-value income" id="monthlyIncome">+8,500</div>
+                    <div class="stat-label">本月收入</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value expense" id="monthlyExpense">-6,320</div>
+                    <div class="stat-label">本月支出</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-section">
+            <div class="section-title">
+                <i class="fas fa-chart-line"></i>
+                本月支出走勢
+            </div>
+            <div class="chart-container">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-section">
+            <div class="section-title">
+                <i class="fas fa-chart-pie"></i>
+                支出分析
+            </div>
+            <div class="chart-container">
+                <canvas id="expenseChart"></canvas>
+            </div>
+        </div>
+
+        <div class="transactions-section">
+            <div class="section-title">
+                <i class="fas fa-list"></i>
+                交易記錄
+            </div>
+            <button class="add-transaction-btn" onclick="openAddModal()">
+                <i class="fas fa-plus"></i>
+                新增交易
+            </button>
+            <div id="transactionsList">
+                <!-- 交易記錄將在這裡動態生成 -->
+            </div>
+        </div>
+
+        <div class="bottom-nav">
+            <div class="nav-item active">
+                <i class="fas fa-home"></i>
+                <span>首頁</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-chart-bar"></i>
+                <span>分析</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-plus-circle"></i>
+                <span>記帳</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-user"></i>
+                <span>個人</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增/編輯交易模態框 -->
+    <div id="transactionModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title" id="modalTitle">新增交易</div>
+            <form id="transactionForm">
+                <div class="form-group">
+                    <label class="form-label">類別</label>
+                    <select class="form-select" id="category" required>
+                        <option value="food">餐飲</option>
+                        <option value="transport">交通</option>
+                        <option value="entertainment">娛樂</option>
+                        <option value="shopping">購物</option>
+                        <option value="utilities">生活費</option>
+                        <option value="income">收入</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">描述</label>
+                    <input type="text" class="form-input" id="description" placeholder="請輸入交易描述" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">金額</label>
+                    <input type="number" class="form-input" id="amount" placeholder="請輸入金額" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">日期</label>
+                    <input type="date" class="form-input" id="date" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">確認</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 交易數據
+        let transactions = [
+            { id: 1, category: 'food', description: '午餐便當', amount: -120, date: '2024-01-15', icon: 'fas fa-utensils', color: '#1e40af' },
+            { id: 2, category: 'transport', description: '捷運儲值', amount: -500, date: '2024-01-14', icon: 'fas fa-bus', color: '#059669' },
+            { id: 3, category: 'entertainment', description: '電影票', amount: -280, date: '2024-01-13', icon: 'fas fa-film', color: '#334155' },
+            { id: 4, category: 'shopping', description: '日用品採購', amount: -850, date: '2024-01-12', icon: 'fas fa-shopping-bag', color: '#1e40af' },
+            { id: 5, category: 'income', description: '薪水', amount: 35000, date: '2024-01-10', icon: 'fas fa-coins', color: '#059669' }
+        ];
+
+        let editingId = null;
+
+        // 類別配置
+        const categoryConfig = {
+            food: { icon: 'fas fa-utensils', color: '#1e40af', name: '餐飲' },
+            transport: { icon: 'fas fa-bus', color: '#059669', name: '交通' },
+            entertainment: { icon: 'fas fa-film', color: '#334155', name: '娛樂' },
+            shopping: { icon: 'fas fa-shopping-bag', color: '#1e40af', name: '購物' },
+            utilities: { icon: 'fas fa-home', color: '#059669', name: '生活費' },
+            income: { icon: 'fas fa-coins', color: '#059669', name: '收入' }
+        };
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            renderTransactions();
+            updateSummary();
+            initCharts();
+            
+            // 設置今天的日期為默認值
+            document.getElementById('date').valueAsDate = new Date();
+        });
+
+        // 渲染交易列表
+        function renderTransactions() {
+            const container = document.getElementById('transactionsList');
+            container.innerHTML = '';
+
+            transactions.forEach(transaction => {
+                const config = categoryConfig[transaction.category];
+                const transactionElement = document.createElement('div');
+                transactionElement.className = 'transaction-item';
+                transactionElement.innerHTML = `
+                    <div class="transaction-info">
+                        <div class="transaction-icon" style="background-color: ${config.color}">
+                            <i class="${config.icon}"></i>
+                        </div>
+                        <div class="transaction-details">
+                            <h4>${transaction.description}</h4>
+                            <p>${config.name} • ${transaction.date}</p>
+                        </div>
+                    </div>
+                    <div class="transaction-amount">NT$ ${transaction.amount.toLocaleString()}</div>
+                    <div class="transaction-actions">
+                        <button class="action-btn edit-btn" onclick="editTransaction(${transaction.id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="action-btn delete-btn" onclick="deleteTransaction(${transaction.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(transactionElement);
+            });
+        }
+
+        // 更新摘要數據
+        function updateSummary() {
+            const income = transactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
+            const expense = transactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+            const balance = income - expense;
+
+            document.getElementById('totalBalance').textContent = `NT$ ${balance.toLocaleString()}`;
+            document.getElementById('monthlyIncome').textContent = `+${income.toLocaleString()}`;
+            document.getElementById('monthlyExpense').textContent = `-${expense.toLocaleString()}`;
+        }
+
+        // 初始化圖表
+        function initCharts() {
+            // 走勢圖
+            const trendCtx = document.getElementById('trendChart').getContext('2d');
+            new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: ['1/10', '1/11', '1/12', '1/13', '1/14', '1/15', '1/16'],
+                    datasets: [{
+                        label: '每日支出',
+                        data: [0, 0, 850, 280, 500, 120, 0],
+                        borderColor: '#1e40af',
+                        backgroundColor: 'rgba(30, 64, 175, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: '#f1f5f9'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 圓餅圖
+            const expenseCtx = document.getElementById('expenseChart').getContext('2d');
+            const expenseData = {};
+            transactions.filter(t => t.amount < 0).forEach(t => {
+                const categoryName = categoryConfig[t.category].name;
+                expenseData[categoryName] = (expenseData[categoryName] || 0) + Math.abs(t.amount);
+            });
+
+            new Chart(expenseCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(expenseData),
+                    datasets: [{
+                        data: Object.values(expenseData),
+                        backgroundColor: ['#1e40af', '#059669', '#334155', '#f8fafc']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 模態框操作
+        function openAddModal() {
+            editingId = null;
+            document.getElementById('modalTitle').textContent = '新增交易';
+            document.getElementById('transactionForm').reset();
+            document.getElementById('date').valueAsDate = new Date();
+            document.getElementById('transactionModal').style.display = 'flex';
+        }
+
+        function editTransaction(id) {
+            const transaction = transactions.find(t => t.id === id);
+            if (!transaction) return;
+
+            editingId = id;
+            document.getElementById('modalTitle').textContent = '編輯交易';
+            document.getElementById('category').value = transaction.category;
+            document.getElementById('description').value = transaction.description;
+            document.getElementById('amount').value = Math.abs(transaction.amount);
+            document.getElementById('date').value = transaction.date;
+            document.getElementById('transactionModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('transactionModal').style.display = 'none';
+            editingId = null;
+        }
+
+        function deleteTransaction(id) {
+            if (confirm('確定要刪除這筆交易嗎？')) {
+                transactions = transactions.filter(t => t.id !== id);
+                renderTransactions();
+                updateSummary();
+                initCharts();
+            }
+        }
+
+        // 表單提交
+        document.getElementById('transactionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const category = document.getElementById('category').value;
+            const description = document.getElementById('description').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            const date = document.getElementById('date').value;
+            
+            const finalAmount = category === 'income' ? amount : -amount;
+            
+            if (editingId) {
+                // 編輯現有交易
+                const index = transactions.findIndex(t => t.id === editingId);
+                if (index !== -1) {
+                    transactions[index] = {
+                        ...transactions[index],
+                        category,
+                        description,
+                        amount: finalAmount,
+                        date
+                    };
+                }
+            } else {
+                // 新增交易
+                const newTransaction = {
+                    id: Date.now(),
+                    category,
+                    description,
+                    amount: finalAmount,
+                    date,
+                    icon: categoryConfig[category].icon,
+                    color: categoryConfig[category].color
+                };
+                transactions.unshift(newTransaction);
+            }
+            
+            renderTransactions();
+            updateSummary();
+            initCharts();
+            closeModal();
+        });
+
+        // 點擊模態框外部關閉
+        document.getElementById('transactionModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
