@@ -220,24 +220,166 @@
             border: 1px solid rgba(0, 255, 255, 0.1);
         }
         
+        .mobile-controls {
+            display: none;
+        }
+        
+        .control-btn {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(45deg, #00ffff, #0088cc);
+            border: none;
+            border-radius: 8px;
+            color: #000;
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(0, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 10px rgba(0, 255, 255, 0.5);
+            background: linear-gradient(45deg, #ff00ff, #cc0088);
+        }
+        
+        .control-btn.wide {
+            width: 100%;
+            font-size: 0.8rem;
+        }
+
+        .touch-feedback {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.6) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: touchRipple 0.6s ease-out;
+            z-index: 1001;
+        }
+        
+        @keyframes touchRipple {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(4); opacity: 0; }
+        }
+
+        /* --- 全新的手機版面配置 --- */
         @media (max-width: 768px) {
-            .game-container {
-                flex-direction: column;
-                padding: 20px;
+            body {
+                padding: 10px;
+                overflow-y: auto;
             }
-            
             .title {
                 font-size: 2rem;
+                margin-bottom: 15px;
             }
+
+            /* 1. 主容器改為垂直排列 */
+            .game-container {
+                flex-direction: column;
+                align-items: center;
+                padding: 15px;
+                gap: 20px;
+                width: 100%;
+            }
+
+            /* 2. 解散 info 容器，讓其子項目能被重新排序 */
+            .game-info {
+                display: contents;
+            }
+
+            /* 3. 使用 order 屬性設定新的排列順序 */
+            .game-board { order: 1; }
+            .next-piece { order: 2; }
+            .mobile-controls { order: 3; }
+            .info-panel { order: 4; }
+            .controls { order: 5; }
+
+            /* 4. 隱藏桌面版說明 */
+            .instructions {
+                display: none;
+            }
+
+            /* --- 重新設定各元件在手機上的樣式 --- */
             
+            /* 主畫面 */
             .board-grid {
-                grid-template-columns: repeat(10, 20px);
-                grid-template-rows: repeat(20, 20px);
+                grid-template-columns: repeat(10, min(28px, 7vw));
+                grid-template-rows: repeat(20, min(28px, 7vw));
+                padding: 4px;
+            }
+            .cell {
+                width: min(28px, 7vw);
+                height: min(28px, 7vw);
+            }
+
+            /* 下一個方塊 */
+            .next-piece {
+                width: 100%;
+                max-width: 300px;
+                padding: 15px;
             }
             
-            .cell {
-                width: 20px;
-                height: 20px;
+            /* 手機控制器 (橫向排列按鈕) */
+            .mobile-controls {
+                display: flex;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: center;
+                align-items: center;
+                gap: 15px;
+                width: 100%;
+                max-width: 320px;
+                padding: 10px 0;
+            }
+            .control-btn {
+                width: 55px;
+                height: 55px;
+                font-size: 1.2rem;
+            }
+            .control-btn.wide {
+                flex-basis: 100%; /* 讓寬按鈕佔滿整行，實現換行效果 */
+                margin-top: 5px;
+                height: 45px;
+                font-size: 1rem;
+            }
+
+            /* 分數面板 */
+            .info-panel {
+                width: 100%;
+                max-width: 300px;
+                display: flex;
+                justify-content: space-around;
+                align-items: center;
+                padding: 15px;
+                border-radius: 10px;
+            }
+            .score, .level {
+                font-size: 1.1rem;
+                margin-bottom: 0;
+            }
+
+            /* 其他按鈕 (重新開始等) */
+            .controls {
+                width: 100%;
+                max-width: 300px;
+                display: flex;
+                flex-direction: row;
+                gap: 10px;
+                margin-top: 0;
+            }
+            .btn {
+                flex: 1; /* 按鈕自動填滿空間 */
+                min-width: 100px;
             }
         }
     </style>
@@ -277,6 +419,14 @@
                 <p>↑ 旋轉</p>
                 <p>空白鍵 暫停</p>
             </div>
+        </div>
+        
+        <div class="mobile-controls" id="mobileControls">
+            <button class="control-btn" id="rotateBtn">↻</button>
+            <button class="control-btn" id="leftBtn">←</button>
+            <button class="control-btn" id="rightBtn">→</button>
+            <button class="control-btn" id="downBtn">↓</button>
+            <button class="control-btn wide" id="pauseBtn">暫停</button>
         </div>
     </div>
     
@@ -395,6 +545,7 @@
             const nextGrid = document.getElementById('nextPiece');
             nextGrid.innerHTML = '';
             
+            // 創建 4x4 的空白預覽格
             for (let i = 0; i < 16; i++) {
                 const cell = document.createElement('div');
                 cell.className = 'next-cell';
@@ -402,13 +553,25 @@
             }
             
             if (nextPiece) {
-                nextPiece.shape.forEach((row, y) => {
+                // 這個邏輯是為了讓不同形狀的方塊能在預覽區置中顯示
+                const shape = nextPiece.shape;
+                const shapeWidth = shape[0].length;
+                const shapeHeight = shape.length;
+                const offsetX = Math.floor((4 - shapeWidth) / 2);
+                const offsetY = Math.floor((4 - shapeHeight) / 2);
+
+                shape.forEach((row, y) => {
                     row.forEach((value, x) => {
                         if (value) {
-                            const index = y * 4 + x;
-                            const cell = nextGrid.children[index];
-                            if (cell) {
-                                cell.classList.add('filled', nextPiece.color);
+                            const gridX = x + offsetX;
+                            const gridY = y + offsetY;
+                            const index = gridY * 4 + gridX;
+                            if (index >= 0 && index < 16) {
+                                const cell = nextGrid.children[index];
+                                if (cell) {
+                                    // 修正：同時加上 'next-cell' 和 'cell' class，使其能套用顏色
+                                    cell.className = 'next-cell cell filled ' + nextPiece.color;
+                                }
                             }
                         }
                     });
@@ -468,23 +631,26 @@
                 currentPiece.shape.map(row => row[i]).reverse()
             );
             
-            let newX = currentPiece.x;
-            let newY = currentPiece.y;
-
-            if (!isValidMove(newX, newY, rotated)) {
-                if (isValidMove(newX - 1, newY, rotated)) {
-                    newX -= 1;
-                } else if (isValidMove(newX + 1, newY, rotated)) {
-                    newX += 1;
-                } else if (isValidMove(newX, newY - 1, rotated)) {
-                    newY -= 1;
+            // Wall Kick 邏輯
+            let kickX = 0;
+            if (!isValidMove(currentPiece.x, currentPiece.y, rotated)) {
+                // 嘗試向右踢
+                if (isValidMove(currentPiece.x + 1, currentPiece.y, rotated)) {
+                    kickX = 1;
+                // 嘗試向左踢
+                } else if (isValidMove(currentPiece.x - 1, currentPiece.y, rotated)) {
+                    kickX = -1;
+                // 針對 I 型方塊的特殊踢牆
+                } else if (currentPiece.type === 'I' && isValidMove(currentPiece.x + 2, currentPiece.y, rotated)) {
+                    kickX = 2;
+                } else if (currentPiece.type === 'I' && isValidMove(currentPiece.x - 2, currentPiece.y, rotated)) {
+                    kickX = -2;
                 } else {
-                    return;
+                    return; // 無法旋轉
                 }
             }
 
-            currentPiece.x = newX;
-            currentPiece.y = newY;
+            currentPiece.x += kickX;
             currentPiece.shape = rotated;
             updateDisplay();
         }
@@ -515,7 +681,6 @@
                 if (board[y].every(cell => cell !== 0)) {
                     linesCleared.push(y);
                     
-                    // 添加清除動畫
                     for (let x = 0; x < BOARD_WIDTH; x++) {
                         const cell = document.getElementById(`cell-${x}-${y}`);
                         if (cell) {
@@ -527,30 +692,29 @@
             
             if (linesCleared.length > 0) {
                 setTimeout(() => {
-                    linesCleared.forEach(lineY => {
+                    linesCleared.sort((a, b) => a - b).forEach(lineY => {
                         board.splice(lineY, 1);
                         board.unshift(Array(BOARD_WIDTH).fill(0));
                     });
                     
                     score += linesCleared.length * 100 * level;
                     
-                    if (Math.floor(score / 500) > level - 1) {
+                    if (Math.floor(score / 500) >= level) {
                         level++;
                         dropTime = Math.max(100, dropTime * SPEED_INCREASE_FACTOR);
                         startGameLoop();
                     }
                     
                     updateDisplay();
-                }, 500);
+                }, 450); // 稍短於動畫時間
             }
         }
 
         function spawnNewPiece() {
             currentPiece = {
-                x: Math.floor(BOARD_WIDTH / 2) - 1,
+                ...nextPiece,
+                x: Math.floor(BOARD_WIDTH / 2) - Math.floor(nextPiece.shape[0].length / 2),
                 y: 0,
-                shape: nextPiece.shape,
-                color: nextPiece.color
             };
             
             nextPiece = randomTetromino();
@@ -559,6 +723,7 @@
                 gameOver = true;
                 document.getElementById('gameOver').style.display = 'block';
                 clearInterval(dropInterval);
+                if(isMusicPlaying) toggleMusic(); // 遊戲結束時停止音樂
             }
             
             updateDisplay();
@@ -577,11 +742,14 @@
         }
 
         function togglePause() {
+            if (gameOver) return;
             isPaused = !isPaused;
             if (isPaused) {
                 clearInterval(dropInterval);
+                document.getElementById('pauseBtn').textContent = '繼續';
             } else {
                 startGameLoop();
+                document.getElementById('pauseBtn').textContent = '暫停';
             }
         }
 
@@ -591,43 +759,134 @@
                 music.pause();
                 isMusicPlaying = false;
             } else {
-                music.play().catch(e => console.log('音樂播放失敗:', e));
+                music.play().catch(e => {
+                    console.log('音樂播放需要使用者互動:', e);
+                    // 可以在此處顯示一個提示，讓使用者點擊以播放音樂
+                });
                 isMusicPlaying = true;
             }
         }
 
-        // 鍵盤控制
         document.addEventListener('keydown', (e) => {
             if (gameOver) return;
             
             switch (e.key) {
-                case 'ArrowLeft':
-                    e.preventDefault();
-                    moveLeft();
-                    break;
-                case 'ArrowRight':
-                    e.preventDefault();
-                    moveRight();
-                    break;
-                case 'ArrowDown':
-                    e.preventDefault();
-                    moveDown();
-                    break;
-                case 'ArrowUp':
-                    e.preventDefault();
-                    rotate();
-                    break;
-                case ' ':
-                    e.preventDefault();
-                    togglePause();
-                    break;
+                case 'ArrowLeft': e.preventDefault(); moveLeft(); break;
+                case 'ArrowRight': e.preventDefault(); moveRight(); break;
+                case 'ArrowDown': e.preventDefault(); moveDown(); break;
+                case 'ArrowUp': e.preventDefault(); rotate(); break;
+                case ' ': e.preventDefault(); togglePause(); break;
             }
         });
 
-        // 初始化遊戲
+        function createTouchFeedback(x, y) {
+            const feedback = document.createElement('div');
+            feedback.className = 'touch-feedback';
+            feedback.style.left = (x - 15) + 'px';
+            feedback.style.top = (y - 15) + 'px';
+            document.body.appendChild(feedback);
+            
+            setTimeout(() => {
+                document.body.removeChild(feedback);
+            }, 600);
+        }
+
+        function setupMobileControls() {
+            const leftBtn = document.getElementById('leftBtn');
+            const rightBtn = document.getElementById('rightBtn');
+            const downBtn = document.getElementById('downBtn');
+            const rotateBtn = document.getElementById('rotateBtn');
+            const pauseBtn = document.getElementById('pauseBtn');
+            
+            let pressInterval;
+
+            const handleTouchStart = (e, action) => {
+                e.preventDefault();
+                action();
+
+                const rect = e.target.getBoundingClientRect();
+                createTouchFeedback(rect.left + rect.width / 2, rect.top + rect.height / 2);
+                
+                // 長按加速
+                if (action === moveLeft || action === moveRight || action === moveDown) {
+                    clearInterval(pressInterval); // 清除之前的
+                    pressInterval = setInterval(action, 150);
+                }
+            };
+            
+            const handleTouchEnd = (e) => {
+                e.preventDefault();
+                clearInterval(pressInterval);
+            };
+            
+            const addListener = (btn, action) => {
+                btn.addEventListener('touchstart', (e) => handleTouchStart(e, action), { passive: false });
+                btn.addEventListener('touchend', handleTouchEnd, { passive: false });
+                btn.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+            };
+
+            addListener(leftBtn, moveLeft);
+            addListener(rightBtn, moveRight);
+            addListener(downBtn, moveDown);
+            addListener(rotateBtn, rotate);
+            addListener(pauseBtn, togglePause);
+        }
+
+        function setupTouchGestures() {
+            let touchStartX = 0;
+            let touchStartY = 0;
+            let touchMoved = false;
+            const gameBoard = document.getElementById('gameBoard');
+            
+            gameBoard.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                touchStartX = touch.clientX;
+                touchStartY = touch.clientY;
+                touchMoved = false;
+            }, { passive: false });
+            
+            gameBoard.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (gameOver || isPaused) return;
+                touchMoved = true;
+                const touch = e.touches[0];
+                const deltaX = touch.clientX - touchStartX;
+                
+                // 橫向滑動
+                const sensitivity = gameBoard.clientWidth / BOARD_WIDTH; // 一格的寬度
+                if (Math.abs(deltaX) > sensitivity) {
+                    if (deltaX > 0) { moveRight(); } 
+                    else { moveLeft(); }
+                    touchStartX = touch.clientX; // 重設起點
+                }
+            }, { passive: false });
+
+            gameBoard.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                if (gameOver || isPaused) return;
+                
+                // 如果沒有滑動，視為點擊旋轉
+                if (!touchMoved) {
+                    const touch = e.changedTouches[0];
+                    createTouchFeedback(touch.clientX, touch.clientY);
+                    rotate();
+                }
+            }, { passive: false });
+        }
+
         window.onload = function() {
             createBoard();
             initGame();
+            setupMobileControls();
+            setupTouchGestures();
+
+            // 首次互動後才能播放音樂
+            document.body.addEventListener('click', () => {
+                if (!isMusicPlaying && document.getElementById('bgMusic').paused) {
+                    // 可以在這裡提示使用者音樂已準備好
+                }
+            }, { once: true });
         };
     </script>
 </body>
